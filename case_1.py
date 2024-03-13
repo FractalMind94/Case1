@@ -2,11 +2,11 @@ from datetime import date
 
 
 class Book:
-    def __init__(self, title, author, year, ISBN):
+    def __init__(self, title, author, year, isbn):
         self.title = title
         self.author = author
         self.year = year
-        self.ISBN = ISBN
+        self.isbn = isbn
 
 
 class User:
@@ -48,11 +48,11 @@ class Library:
 
         # TODO Implement for multiple books of the same type
         for re in self.loans:
-            if book.ISBN == re.book.ISBN:
+            if book.isbn == re.book.isbn:
                 False
 
         for re in self.reservations:
-            if book.ISBN == re.book.ISBN:
+            if book.isbn == re.book.isbn:
                 if user.user_id == re.user.user_id:
                     # remove from reservations
                     break
@@ -87,7 +87,7 @@ class BookCollection:
 
     def search_books(self, isbn):
         for book in self.read_book_list():
-            if isbn == book.ISBN:
+            if isbn == book.isbn:
                 return book
             
         # SELECT * FROM Books WHERE ISBN equal id
