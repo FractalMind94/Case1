@@ -113,7 +113,7 @@ class Library:
                 available_copies -= 1
 
         if available_copies > 0:
-            loan = Loan(user, book)
+            loan = Loan(user_id, isbn)
             self.loans.add_loan(loan)
             user.loan_status.append(loan)
 
