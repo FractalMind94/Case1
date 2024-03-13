@@ -586,7 +586,7 @@ class Reservation:
         self.isbn = book_isbn
 
         if not reservation_date:
-            reservation_date = date.today
+            reservation_date = date.today()
         self.date = reservation_date
 
         self.notified = notified
@@ -607,7 +607,7 @@ class Menu:
         # self.submenu1 =
 
     def search_book(self):
-        # kwargs = {'isbn': 1111, 'author': 'bob'}
+        kwargs = {'isbn': 1111, 'author': 'bob'}
         books = self.library.find_books(**kwargs)
         print()
     def menu_user(self):
