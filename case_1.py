@@ -151,6 +151,15 @@ class Library:
         user = self.users.search_users(user_id=user_id)
         return user.get_notifications()
 
+    def find_users(self, user_id):
+        user = self.users.search_users(user_id=user_id)
+        return user
+
+    # def find_books(self, isbn=None, title=None, author=None, year=None):
+    def find_books(self, **kwargs):
+        books = self.books.search_books(**kwargs)
+        return books
+
 
 @singleton
 class Loans:
@@ -179,6 +188,7 @@ class Loans:
                                 f'{loan.notified_expiration}\n')
 
             os.remove(self._loan_path)
+            # TODO only rename not remove??
             os.rename(f'{self._loan_path}.new', f'{self._loan_path}')
             os.remove(f'{self._loan_path}.new')
             self._mode = mode
@@ -438,8 +448,10 @@ class BookCollection:
     def _apply_filters(self, books, isbn=None, title=None, author=None, year=None):
         if isbn:
             books = filter(lambda book: isbn == book.ISBN, books)
+
         if year:
             books = filter(lambda book: year == book.year, books)
+
         if title:
             books = filter(lambda book: title in book.title, books)
         if author:
@@ -590,5 +602,61 @@ class Reservation:
 
 
 class Menu:
-    pass
+    def __init__(self):
+        self.library = Library()
+        # self.submenu1 =
+
+    def search_book(self):
+        # kwargs = {'isbn': 1111, 'author': 'bob'}
+        books = self.library.find_books(**kwargs)
+        print()
+    def menu_user(self):
+
+        user_id=""
+        book=""
+        while True:
+            user_id=input("Enter User ID: ")
+
+            if user_id is int:
+                user_id = int(user_id)
+                print('invalid id format')
+                continue
+
+            user = self.library.find_users(user_id=user_id)
+
+
+            if not user:
+                print("Invalid User ID - Try Again: ")
+                continue
+
+
+            while user:
+                print("---Library Menu---")
+                print("1. Look-Up book")
+                print("2. Loan a book")
+                print("3. Return a book")
+                print("4. Make a reservation")
+                print("5. View loan report")
+                print("6. Exit")
+
+                choice=input()
+                if choice == 1:
+                    self.search_book()
+                elif choice == 2:
+                    pass
+                elif choice == 3:
+                    pass
+                elif choice == 4:
+                    pass
+                elif choice == 5:
+                    pass
+                elif choice == 6:
+                    break
+                else:
+                    print("Value does not exist - Try Again:")
+
+
+
+
+
     # TODO make menu
