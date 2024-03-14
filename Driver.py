@@ -20,7 +20,7 @@ def print_decorator(name='unknown'):
 class Driver:
     def __init__(self):
         self.library = Library()
-        self.test_user_id = 1
+        self.test_user_id = '1'
         self.test_isbn = '978-0-237-92646-5'
 
     def invoke_all_tests(self):
@@ -33,7 +33,7 @@ class Driver:
     @print_decorator('Library')
     def _test_library(self):
         reservations_before = len(Reservations().search_reservations(isbn=self.test_isbn))
-        self.library.make_reservation(user_id=1, isbn=self.test_isbn)
+        self.library.make_reservation(user_id=self.test_user_id, isbn=self.test_isbn)
         reservations_after = len(Reservations().search_reservations(isbn=self.test_isbn))
         print(f'Make reservation: {reservations_before + 1 == reservations_after}')
         print()
@@ -41,7 +41,7 @@ class Driver:
         search_book_config = {'author': 'Kristin',
                               'title': 'difficult',
                               'isbn': self.test_isbn,
-                              'year': 1605}
+                              'year': '1605'}
         books = self.library.find_books(**search_book_config)
         print(f"Find books: {len(books) == 1}")
         print()

@@ -18,7 +18,7 @@ class Book:
     def __init__(self, title, author, year, ISBN, stock):
         self.title = title
         self.author = author
-        self.year = year
+        self.year = str(year)
         self.ISBN = ISBN
         self.stock = int(stock)
 
@@ -28,7 +28,7 @@ class Book:
 
 class User:
     def __init__(self, user_id, name, address, loan_status=[]):
-        self.user_id = user_id
+        self.user_id = str(user_id)
         self.name = name
         self.address = address
         self.loan_status = loan_status
@@ -89,12 +89,11 @@ class Library:
         self.users.switch_mode('file')
 
     def make_reservation(self, user_id, isbn):
-        # user = self.users.search_users(user_id=user_id)
-        # book = self.books.search_books(isbn=isbn)
-        # self.reservations.append(Reservation(user, book))
+        user_id = str(user_id)
         self.reservations.add_reservation(Reservation(user_id=user_id, book_isbn=isbn))
 
     def loan_report(self, user_id):
+        user_id = str(user_id)
         user = self.users.search_users(user_id=user_id)[0]
         report = f'name: {user.name}, id: {user.user_id}\n'
         report += f'loans: \n'
@@ -105,6 +104,7 @@ class Library:
 
     @log_decorator
     def loan(self, user_id, isbn):
+        user_id = str(user_id)
         user = self.users.search_users(user_id=user_id)[0]
         book = self.books.search_books(isbn=isbn)[0]
 
@@ -129,6 +129,7 @@ class Library:
 
     @log_decorator
     def return_book(self, user_id, isbn):
+        user_id = str(user_id)
         user = self.users.search_users(user_id=user_id)[0]
         book = self.books.search_books(isbn=isbn)[0]
 
@@ -157,11 +158,13 @@ class Library:
             loan.notify_expiration()
 
     def get_notifications(self, user_id):
+        user_id = str(user_id)
         # TODO call this from somewhere
         user = self.users.search_users(user_id=user_id)[0]
         return user.get_notifications()
 
     def find_users(self, user_id):
+        user_id = str(user_id)
         user = self.users.search_users(user_id=user_id)
         return user
 
@@ -227,7 +230,9 @@ class Loans:
     def _add_list(self, loan):
         self._loans.append(loan)
 
-    def search_loans(self, user_id=None, isbn=None):
+    def search_loans(self, user_id='', isbn=None):
+        user_id = str(user_id)
+
         loans = self._loans
         if not loans:
             loans = self._read_loans()
@@ -327,7 +332,9 @@ class Reservations:
     def _add_list(self, reservation):
         self._reservations.append(reservation)
 
-    def search_reservations(self, user_id=None, isbn=None):
+    def search_reservations(self, user_id='', isbn=None):
+        user_id = str(user_id)
+
         reservations = self._reservations
         if not reservations:
             reservations = self._read_reservations()
@@ -413,7 +420,9 @@ class BookCollection:
                 book_object = Book(*book.strip().split(':'))
                 yield book_object
 
-    def search_books(self, isbn=None, title=None, author=None, year=None):
+    def search_books(self, isbn=None, title=None, author=None, year=''):
+        year= str(year)
+
         # SQL would look like
         # SELECT * FROM Books WHERE ISBN equal id
         if self._mode == 'file' or not self._books:
@@ -504,7 +513,9 @@ class UserList:
                 user_object = User(*user.strip().split(':'))
                 yield user_object
 
-    def search_users(self, user_id=None, name=None, address=None):
+    def search_users(self, user_id='', name=None, address=None):
+        user_id = str(user_id)
+
         if self._mode == 'file' or not self._users:
             return self._search_file(user_id, name, address)
         elif self._mode == 'ram' and self._users:
@@ -515,7 +526,7 @@ class UserList:
     def _search_list(self, user_id=None, name=None, address=None):
         if user_id:
             try:
-                user = self._users[str(user_id)]
+                user = self._users[user_id]
                 return [user]
             except KeyError:
                 pass
@@ -558,7 +569,7 @@ class UserList:
 
 class Loan:
     def __init__(self, user_id, isbn, loan_date=None, expiration_date=None, notified_expiration=False) -> None:
-        self.user_id = user_id
+        self.user_id = str(user_id)
         self.isbn = isbn
 
         if not loan_date:
@@ -584,7 +595,7 @@ class Loan:
 
 class Reservation:
     def __init__(self, user_id, book_isbn, reservation_date=None, notified=False) -> None:
-        self.user_id = user_id
+        self.user_id = str(user_id)
         self.isbn = book_isbn
 
         if not reservation_date:

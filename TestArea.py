@@ -138,6 +138,25 @@ def test_comprehension():
 
 
 if __name__ == '__main__':
+
+    a = '1'
+    b = 1
+
+    if not '':
+        print('Empty is false')
+    else:
+        print('empty is not false')
+
+    c = None
+    d = str(c)
+    print(c)
+    print(d)
+
+    c = ''
+    d = str(c)
+    print(c)
+    print(d)
+
     test_logging()
 
     test_to_string()
