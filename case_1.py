@@ -124,8 +124,10 @@ class Library:
             loan = Loan(user_id, isbn)
             self.loans.add_loan(loan)
             user.loan_status.append(loan)
+            return True
+        else:
+            return False
 
-        return True
 
     @log_decorator
     def return_book(self, user_id, isbn):
@@ -172,6 +174,16 @@ class Library:
     def find_books(self, **kwargs):
         books = self.books.search_books(**kwargs)
         return books
+
+    def find_loans(self, **kwargs):
+        loans = self.loans.search_loans(**kwargs)
+        return loans
+
+    #TODO search stock in books file
+    def find_in_stock(self, **kwargs):
+        #in_stock = self.in_stock.search_books(stock)
+        #return in_stock
+        pass
 
 
 @singleton
@@ -614,20 +626,99 @@ class Reservation:
         else:
             return False
 
-
+# TODO make menu
 class Menu:
+
     def __init__(self):
         self.library = Library()
         # self.submenu1 =
 
-    def search_book(self):
-        kwargs = {'isbn': 1111, 'author': 'bob'}
-        books = self.library.find_books(**kwargs)
-        print()
-    def menu_user(self):
+    def choose_book(self, books, user_id): #From search_book
+        for count, book in enumerate(books):
+            print(f'{count}: \t {book}')
 
-        user_id=""
-        book=""
+        while True:
+            print("Any integer. Choose one of the books")
+            print("exit. exit the menu")
+            choice = input("choose choice").strip()
+
+            if choice == "exit":
+                break
+            else:
+                try:
+                    book = books[int(choice)]
+                    break
+                except Exception as e:
+                    print('invalid input')
+
+        self.book_of_choice(book, user_id)
+
+    def book_of_choice(self, book, user_id): #from choose_book
+        while True:
+            print("1. Loan the book")
+            print("2. Make a reservation")
+            print("3. Exit")
+            choice = input()
+            if choice == '1':
+                success = self.library.loan(user_id=user_id, isbn=book.isbn)
+
+                if success:
+                    print('success')
+                    break
+                else:
+                    print('book not available')
+            elif choice == '2':
+                self.library.make_reservation(user_id=user_id, isbn=book.isbn)
+                break
+            elif choice == '3':
+                break
+            else:
+                print("Invalid Number - Try Again: ")
+                continue
+
+
+    def search_book(self, user_id): # from menu_user
+        isbn = ''
+        author = ''
+        title = ''
+        year = ''
+
+        while True:
+            print("---Search Menu---")
+            print(f"1. Search by ISBN: {isbn}")
+            print(f"2. Search by Author: {author}")
+            print(f"3. Search by Title: {title}")
+            print(f"4. Search by Year: {year}")
+            print(f"5. Perform Search")
+            print(f"6. Exit")
+
+            choice = input("Select option:").strip()
+            kwargs = {'isbn': isbn, 'author': author, 'title': title, 'year': year}
+
+            if choice == '1':
+                isbn = input('Write ISBN:').strip()
+            elif choice == '2':
+                author = input('Write author:').strip()
+            elif choice == '3':
+                title=input("Write Title of Book: ").strip()
+            elif choice == '4':
+                year=input("Write year of book: ").strip()
+            elif choice == '5':
+                books = self.library.find_books(**kwargs)
+                if len(books) > 1:
+                    self.choose_book(books, user_id)
+                elif len(books) == 1:
+                    self.book_of_choice(books[0], user_id)
+                else:
+                    print("No Book Found Matching Criteria - Try Again: ")
+            elif choice == '6':
+                break
+
+
+
+
+
+    def menu_user(self):
         while True:
             user_id=input("Enter User ID: ")
 
@@ -638,39 +729,30 @@ class Menu:
 
             user = self.library.find_users(user_id=user_id)
 
-
             if not user:
                 print("Invalid User ID - Try Again: ")
                 continue
 
-
             while user:
                 print("---Library Menu---")
                 print("1. Look-Up book")
-                print("2. Loan a book")
-                print("3. Return a book")
-                print("4. Make a reservation")
-                print("5. View loan report")
-                print("6. Exit")
+                print("2. Return a book")
+                print("3. View loan report")
+                print("4. Exit")
 
-                choice=input()
-                if choice == 1:
-                    self.search_book()
-                elif choice == 2:
-                    pass
-                elif choice == 3:
-                    pass
-                elif choice == 4:
-                    pass
-                elif choice == 5:
-                    pass
-                elif choice == 6:
+                choice = input()
+                if choice == '1':
+                    self.search_book(user_id=user_id)
+                elif choice == '2':
+                    report = self.library.loan_report(user_id=user_id)
+                    print(report)
+                    isbn = input('Enter ISBN:')
+                    self.library.return_book(user_id=user_id, isbn=isbn)
+                elif choice == '3':
+                    report = self.library.loan_report(user_id=user_id)
+                    print(report)
+                elif choice == '4':
                     break
                 else:
-                    print("Value does not exist - Try Again:")
-
-
-
-
-
-    # TODO make menu
+                    print("Invalid Number - Try Again:")
+                    continue
