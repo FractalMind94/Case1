@@ -1,4 +1,3 @@
-author:title:year:ISBN:stock
 Kristin Hernandez:Indicate partner high up difficult.:1605:978-0-237-92646-5:2
 Kevin Hart:Make across person.:1584:978-0-268-56388-2:2
 Marie Rodriguez:Size of power decade.:1077:978-1-66810-856-7:2

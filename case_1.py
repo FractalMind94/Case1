@@ -114,7 +114,7 @@ class Library:
             available_copies -= 1
 
         for reservation in self.reservations.search_reservations(isbn=isbn):
-            if user.user_id == reservation.user_id:
+            if user_id == reservation.user_id:
                 self.reservations.remove(reservation)
                 break
             else:
