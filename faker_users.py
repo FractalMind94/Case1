@@ -3,7 +3,7 @@ from faker import Faker
 
 
 def generate_user(users):
-    with open(r"./data/users.txt", "w") as output:  # definér hvilken sti den skal bruge
+    with open(r"data/users.txt", "w") as output:  # definér hvilken sti den skal bruge
         faker = Faker()
 
         for i in range(1, users):

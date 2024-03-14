@@ -20,7 +20,7 @@ class Book:
         self.author = author
         self.year = year
         self.ISBN = ISBN
-        self.stock = stock
+        self.stock = int(stock)
 
     def __str__(self):
         return f'Title: {self.title}, author: {self.author}, year: {self.year}, ISBN: {self.ISBN}'
@@ -76,10 +76,17 @@ def log_decorator(function):
 
 class Library:
     def __init__(self) -> None:
-        self.books = BookCollection(mode='ram')
-        self.users = UserList(mode='ram')
-        self.reservations = Reservations(mode='ram')
         self.loans = Loans(mode='ram')
+        self.reservations = Reservations(mode='ram')
+        self.books = BookCollection(mode='ram')
+
+        self.users = UserList(mode='ram')
+
+    def shutdown(self):
+        self.loans.switch_mode('file')
+        self.reservations.switch_mode('file')
+        self.books.switch_mode('file')
+        self.users.switch_mode('file')
 
     def make_reservation(self, user_id, isbn):
         # user = self.users.search_users(user_id=user_id)
@@ -88,17 +95,18 @@ class Library:
         self.reservations.add_reservation(Reservation(user_id=user_id, book_isbn=isbn))
 
     def loan_report(self, user_id):
-        user = self.users.search_users(user_id=user_id)
-        print(f'name: {user.name}')
-        print(f'id: {user.user_id}')
-        print(f'loans: ')
+        user = self.users.search_users(user_id=user_id)[0]
+        report = f'name: {user.name}, id: {user.user_id}\n'
+        report += f'loans: \n'
         for book in user.loan_status:
-            print(f'\t {book}')
+            report += f'\t {book}\n'
+
+        return report
 
     @log_decorator
     def loan(self, user_id, isbn):
-        user = self.users.search_users(user_id=user_id)
-        book = self.books.search_books(isbn=isbn)
+        user = self.users.search_users(user_id=user_id)[0]
+        book = self.books.search_books(isbn=isbn)[0]
 
         available_copies = book.stock
 
@@ -117,12 +125,12 @@ class Library:
             self.loans.add_loan(loan)
             user.loan_status.append(loan)
 
-        return None
+        return True
 
     @log_decorator
     def return_book(self, user_id, isbn):
-        user = self.users.search_users(user_id=user_id)
-        book = self.books.search_books(isbn=isbn)
+        user = self.users.search_users(user_id=user_id)[0]
+        book = self.books.search_books(isbn=isbn)[0]
 
         for loan in self.loans.search_loans(isbn=isbn, user_id=user_id):
             self.loans.remove(loan)
@@ -131,9 +139,11 @@ class Library:
             if book.ISBN == loan.isbn:
                 user.loan_status.remove(loan)
 
-        self.notify_reservation(book)
+        self._notify_reservation(book)
 
-    def notify_reservation(self, book):
+        return True
+
+    def _notify_reservation(self, book):
         for reservation in self.reservations.search_reservations(isbn=book.ISBN):
             notified = reservation.notify(book)
             if notified:
@@ -148,7 +158,7 @@ class Library:
 
     def get_notifications(self, user_id):
         # TODO call this from somewhere
-        user = self.users.search_users(user_id=user_id)
+        user = self.users.search_users(user_id=user_id)[0]
         return user.get_notifications()
 
     def find_users(self, user_id):
@@ -165,16 +175,15 @@ class Library:
 class Loans:
     _loan_path = r"./data/loans.txt"
     _loans = list()
-    _mode = 'file'
 
     def __init__(self, mode='file'):
         self._mode = mode
         if mode == 'ram':
-            self._loans = [self.read_loans()]
+            self._loans = [loan for loan in self._read_loans()]
 
     def switch_mode(self, mode):
         if self._mode == 'file' and mode == 'ram':
-            self._loans = [self.read_loans()]
+            self._loans = [loan for loan in self._read_loans()]
             self._mode = mode
             return True
         elif self._mode == 'ram' and mode == 'file':
@@ -188,16 +197,14 @@ class Loans:
                                 f'{loan.notified_expiration}\n')
 
             os.remove(self._loan_path)
-            # TODO only rename not remove??
             os.rename(f'{self._loan_path}.new', f'{self._loan_path}')
-            os.remove(f'{self._loan_path}.new')
             self._mode = mode
             self._loans = list()
             return True
         else:
             return False
 
-    def read_loans(self):
+    def _read_loans(self):
         with open(self._loan_path, "r") as loans:
             for loan in loans:
                 loan_object = Loan(*loan.strip().split(':'))
@@ -223,17 +230,17 @@ class Loans:
     def search_loans(self, user_id=None, isbn=None):
         loans = self._loans
         if not loans:
-            loans = self.read_loans()
+            loans = self._read_loans()
 
         if isbn:
             loans = filter(lambda loan: isbn == loan.isbn, loans)
         if user_id:
             loans = filter(lambda loan: user_id == loan.user_id, loans)
 
-        loans = [loans]
+        loans = [loan for loan in loans]
 
-        if len(loans) == 1:
-            return loans[0]
+        # if len(loans) == 1:
+        #     return loans[0]
 
         return loans
 
@@ -247,7 +254,7 @@ class Loans:
         self._loans.remove(loan)
 
     def _remove_file(self, loan):
-        file_loans = self.read_loans()
+        file_loans = self._read_loans()
         removed = False
 
         with open(f'{self._loan_path}.new', "w") as new_loans:
@@ -264,23 +271,21 @@ class Loans:
 
         os.remove(self._loan_path)
         os.rename(f'{self._loan_path}.new', f'{self._loan_path}')
-        os.remove(f'{self._loan_path}.new')
 
 
 @singleton
 class Reservations:
     _reservations_path = r"./data/reservations.txt"
     _reservations = list()
-    _mode = 'file'
 
     def __init__(self, mode='file'):
         self._mode = mode
         if mode == 'ram':
-            self._reservations = [self.read_reservations()]
+            self._reservations = [reservation for reservation in self._read_reservations()]
 
     def switch_mode(self, mode):
         if self._mode == 'file' and mode == 'ram':
-            self._reservations = [self.read_reservations()]
+            self._reservations = [reservation for reservation in self._read_reservations()]
             self._mode = mode
             return True
         elif self._mode == 'ram' and mode == 'file':
@@ -294,14 +299,13 @@ class Reservations:
 
             os.remove(self._reservations_path)
             os.rename(f'{self._reservations_path}.new', f'{self._reservations_path}')
-            os.remove(f'{self._reservations_path}.new')
             self._mode = mode
             self._reservations = list()
             return True
         else:
             return False
 
-    def read_reservations(self):
+    def _read_reservations(self):
         with open(self._reservations_path, "r") as reservations:
             for reservation in reservations:
                 reservation_object = Reservation(*reservation.strip().split(':'))
@@ -326,17 +330,17 @@ class Reservations:
     def search_reservations(self, user_id=None, isbn=None):
         reservations = self._reservations
         if not reservations:
-            reservations = self.read_reservations()
+            reservations = self._read_reservations()
 
         if isbn:
             reservations = filter(lambda reservation: isbn == reservation.isbn, reservations)
         if user_id:
             reservations = filter(lambda reservation: user_id == reservation.user_id, reservations)
 
-        reservations = [reservations]
+        reservations = [reservation for reservation in reservations]
 
-        if len(reservations) == 1:
-            return reservations[0]
+        # if len(reservations) == 1:
+        #     return reservations[0]
 
         return reservations
 
@@ -350,7 +354,7 @@ class Reservations:
         self._reservations.remove(reservation)
 
     def _remove_file(self, reservation):
-        file_reservations = self.read_reservations()
+        file_reservations = self._read_reservations()
         removed = False
 
         with open(f'{self._reservations_path}.new', "w") as new_reservations:
@@ -366,31 +370,29 @@ class Reservations:
 
         os.remove(self._reservations_path)
         os.rename(f'{self._reservations_path}.new', f'{self._reservations_path}')
-        os.remove(f'{self._reservations_path}.new')
 
 
 @singleton
 class BookCollection:
     _book_path = r"./data/books.txt"
     _books = dict()
-    _mode = 'file'
 
     def __init__(self, mode='file'):
         self._mode = mode
         if mode == 'ram':
-            books = self.read_book_list()
+            books = self._read_book_list()
 
             for book in books:
                 self._books[book.ISBN] = book
 
     def switch_mode(self, mode):
         if self._mode == 'file' and mode == 'ram':
-            self._books = [self.read_book_list()]
+            self._books = [reservation for reservation in self._read_book_list()]
             self._mode = mode
             return True
         elif self._mode == 'ram' and mode == 'file':
             with open(f'{self._book_path}.new', "w") as books:
-                for isbn, book in self._books:
+                for isbn, book in self._books.items():
                     books.write(f'{book.title}:'
                                 f'{book.author}:'
                                 f'{book.year}:'
@@ -399,14 +401,13 @@ class BookCollection:
 
             os.remove(self._book_path)
             os.rename(f'{self._book_path}.new', f'{self._book_path}')
-            os.remove(f'{self._book_path}.new')
             self._mode = mode
             self._books = dict()
             return True
         else:
             return False
 
-    def read_book_list(self):
+    def _read_book_list(self):
         with open(self._book_path, "r") as books:
             for book in books:
                 book_object = Book(*book.strip().split(':'))
@@ -417,13 +418,13 @@ class BookCollection:
         # SELECT * FROM Books WHERE ISBN equal id
         if self._mode == 'file' or not self._books:
             books = self._search_file(isbn, title, author, year)
-        elif self._mode == 'list' and self._books:
+        elif self._mode == 'ram' and self._books:
             books = self._search_dict(isbn, title, author, year)
         else:
             return None
 
-        if len(books) == 1:
-            return books[0]
+        # if len(books) == 1:
+        #     return books[0]
 
         return books
 
@@ -431,19 +432,20 @@ class BookCollection:
         if isbn:
             try:
                 book = self._books[isbn]
-                return book
+
+                return [book]
             except KeyError:
                 pass
 
         books = self._apply_filters(self._books.values(), isbn, title, author, year)
 
-        return [books]
+        return [book for book in books]
 
     def _search_file(self, isbn=None, title=None, author=None, year=None):
-        books = self.read_book_list()
+        books = self._read_book_list()
         books = self._apply_filters(books, isbn, title, author, year)
 
-        return [books]
+        return [book for book in books]
 
     def _apply_filters(self, books, isbn=None, title=None, author=None, year=None):
         if isbn:
@@ -461,14 +463,13 @@ class BookCollection:
 
 @singleton
 class UserList:
-    _user_path = r"./data/users.txt"
+    _user_path = r"data/users.txt"
     _users = dict()
-    _mode = 'file'
 
     def __init__(self, mode='file'):
         self._mode = mode
         if mode == 'ram':
-            users = self.read_user_list()
+            users = self._read_user_list()
             users = self._add_loans(users)
 
             for user in users:
@@ -476,28 +477,28 @@ class UserList:
 
     def switch_mode(self, mode):
         if self._mode == 'file' and mode == 'ram':
-            users = self.read_user_list()
+            users = self._read_user_list()
             users = self._add_loans(users)
-            self._users = [users]
+            self._users = [reservation for reservation in users]
             self._mode = mode
             return True
         elif self._mode == 'ram' and mode == 'file':
-            with open(f'{self._user_path}.new', "w") as users:
-                for user_id, user in self._users:
+            new_filename = f'{self._user_path}.new'
+            with open(new_filename, "w") as users:
+                for user_id, user in self._users.items():
                     users.write(f'{user.user_id}:'
                                 f'{user.name}:'
                                 f'{user.address}\n')
 
             os.remove(self._user_path)
             os.rename(f'{self._user_path}.new', f'{self._user_path}')
-            os.remove(f'{self._user_path}.new')
             self._mode = mode
             self._users = dict()
             return True
         else:
             return False
 
-    def read_user_list(self):
+    def _read_user_list(self):
         with open(self._user_path, "r") as users:
             for user in users:
                 user_object = User(*user.strip().split(':'))
@@ -506,38 +507,39 @@ class UserList:
     def search_users(self, user_id=None, name=None, address=None):
         if self._mode == 'file' or not self._users:
             return self._search_file(user_id, name, address)
-        elif self._mode == 'list' and self._users:
-            return self._search_list()
+        elif self._mode == 'ram' and self._users:
+            return self._search_list(user_id, name, address)
         else:
             return None
 
     def _search_list(self, user_id=None, name=None, address=None):
         if user_id:
             try:
-                user = self._users[user_id]
-                return user
+                user = self._users[str(user_id)]
+                return [user]
             except KeyError:
                 pass
 
         users = (self._users.values())
         users = self._apply_filters(users, user_id, name, address)
 
-        users = [users]
+        users = [reservation for reservation in users]
 
-        if len(users) == 1:
-            return users[0]
+        # TODO return only list
+        # if len(users) == 1:
+        #     return users[0]
 
         return users
 
     def _search_file(self, user_id=None, name=None, address=None):
-        users = self.read_user_list()
+        users = self._read_user_list()
         users = self._apply_filters(users, user_id, name, address)
         users = self._add_loans(users)
 
-        users = [users]
+        users = [reservation for reservation in users]
 
-        if len(users) == 1:
-            return users[0]
+        # if len(users) == 1:
+        #     return users[0]
 
         return users
 
@@ -595,6 +597,7 @@ class Reservation:
         if not self.notified and self.isbn == book.ISBN:
             user = UserList().search_users(user_id=self.user_id)
             self.notified = True
+            print(f'Notify reservation. User_id: {self.user_id}, ISBN: {self.isbn}')
             # TODO send notification
             return True
         else:

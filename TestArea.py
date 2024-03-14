@@ -117,6 +117,26 @@ def test_type():
     print(type(a) is list)
     print(type(b) is list)
 
+@print_decorator('for dict')
+def test_dict():
+    a = {'a':'1', 'b': '2'}
+    for k, v in a.items():
+        print(f'{k} {v}')
+
+@print_decorator('list comprehension')
+def test_comprehension():
+    def a(nu):
+        n = 0
+        while n< nu:
+            yield n
+            n += 1
+
+    b = a(10)
+    c = [bv for bv in b]
+    print(c)
+
+
+
 if __name__ == '__main__':
     test_logging()
 
@@ -125,5 +145,9 @@ if __name__ == '__main__':
     test_dict_list_empty()
 
     test_type()
+
+    test_dict()
+
+    test_comprehension()
 
     print('End')

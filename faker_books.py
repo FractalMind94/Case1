@@ -4,11 +4,12 @@ from faker import Faker
 
 def generate_books(books):
     with open(r"data/books.txt", "w") as output:  # definér hvilken sti den skal bruge
-        output.write(f'author:title:year:ISBN:stock\n')  # gemmer i ny linje efter hver gennemgang
+        # output.write(f'author:title:year:ISBN:stock\n')  # gemmer i ny linje efter hver gennemgang
 
         # books_list = []
         faker = Faker()
         isbns = set()
+        isbns.add(False)
         for i in range(1, books):
             ISBN = False
             while ISBN in isbns:
