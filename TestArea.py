@@ -157,6 +157,11 @@ if __name__ == '__main__':
     print(c)
     print(d)
 
+
+    b = [1, 1, 1, 1, 1, 1]
+    for count, v in enumerate(b):
+        print(count)
+
     test_logging()
 
     test_to_string()
