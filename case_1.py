@@ -15,15 +15,15 @@ def singleton(cls):
 
 
 class Book:
-    def __init__(self, title, author, year, ISBN, stock):
+    def __init__(self, author, title, year, isbn, stock):
         self.title = title
         self.author = author
         self.year = str(year)
-        self.ISBN = ISBN
+        self.isbn = isbn
         self.stock = int(stock)
 
     def __str__(self):
-        return f'Title: {self.title}, author: {self.author}, year: {self.year}, ISBN: {self.ISBN}'
+        return f'Title: {self.title}, author: {self.author}, year: {self.year}, ISBN: {self.isbn}'
 
 
 class User:
@@ -97,8 +97,8 @@ class Library:
         user = self.users.search_users(user_id=user_id)[0]
         report = f'name: {user.name}, id: {user.user_id}\n'
         report += f'loans: \n'
-        for book in user.loan_status:
-            report += f'\t {book}\n'
+        for loan in user.loan_status:
+            report += f'\t Expiration: {loan.expiration_date}, ISBN: {loan.isbn}\n'
 
         return report
 
@@ -113,12 +113,13 @@ class Library:
         for _ in self.loans.search_loans(isbn=isbn):
             available_copies -= 1
 
-        for reservation in self.reservations.search_reservations(isbn=isbn):
-            if user_id == reservation.user_id:
-                self.reservations.remove(reservation)
-                break
-            else:
-                available_copies -= 1
+        if available_copies > 0:
+            for reservation in self.reservations.search_reservations(isbn=isbn):
+                if user_id == reservation.user_id:
+                    self.reservations.remove(reservation)
+                    break
+                else:
+                    available_copies -= 1
 
         if available_copies > 0:
             loan = Loan(user_id, isbn)
@@ -139,7 +140,7 @@ class Library:
             self.loans.remove(loan)
 
         for loan in user.loan_status:
-            if book.ISBN == loan.isbn:
+            if book.isbn == loan.isbn:
                 user.loan_status.remove(loan)
 
         self._notify_reservation(book)
@@ -147,7 +148,7 @@ class Library:
         return True
 
     def _notify_reservation(self, book):
-        for reservation in self.reservations.search_reservations(isbn=book.ISBN):
+        for reservation in self.reservations.search_reservations(isbn=book.isbn):
             notified = reservation.notify(book)
             if notified:
                 return True
@@ -179,12 +180,6 @@ class Library:
         loans = self.loans.search_loans(**kwargs)
         return loans
 
-    #TODO search stock in books file
-    def find_in_stock(self, **kwargs):
-        #in_stock = self.in_stock.search_books(stock)
-        #return in_stock
-        pass
-
 
 @singleton
 class Loans:
@@ -203,7 +198,6 @@ class Loans:
             return True
         elif self._mode == 'ram' and mode == 'file':
             with open(f'{self._loan_path}.new', "w") as loans:
-                # TODO look at this, I believe it should work, but IDE is warning
                 for loan in self._loans:
                     loans.write(f'{loan.user_id}:'
                                 f'{loan.isbn}:'
@@ -307,7 +301,6 @@ class Reservations:
             return True
         elif self._mode == 'ram' and mode == 'file':
             with open(f'{self._reservations_path}.new', "w") as reservations:
-                # TODO look at this, I believe it should work, but IDE is warning
                 for reservation in self._reservations:
                     reservations.write(f'{reservation.user_id}:'
                                        f'{reservation.isbn}:'
@@ -402,7 +395,7 @@ class BookCollection:
             books = self._read_book_list()
 
             for book in books:
-                self._books[book.ISBN] = book
+                self._books[book.isbn] = book
 
     def switch_mode(self, mode):
         if self._mode == 'file' and mode == 'ram':
@@ -412,10 +405,10 @@ class BookCollection:
         elif self._mode == 'ram' and mode == 'file':
             with open(f'{self._book_path}.new', "w") as books:
                 for isbn, book in self._books.items():
-                    books.write(f'{book.title}:'
-                                f'{book.author}:'
+                    books.write(f'{book.author}:'
+                                f'{book.title}:'
                                 f'{book.year}:'
-                                f'{book.ISBN}:'
+                                f'{book.isbn}:'
                                 f'{book.stock}\n')
 
             os.remove(self._book_path)
@@ -460,6 +453,11 @@ class BookCollection:
 
         books = self._apply_filters(self._books.values(), isbn, title, author, year)
 
+        # for key, book in self._books.items():
+        #     print(author)
+        #     print(book.author)
+        #     print(author in book.author)
+
         return [book for book in books]
 
     def _search_file(self, isbn=None, title=None, author=None, year=None):
@@ -470,7 +468,7 @@ class BookCollection:
 
     def _apply_filters(self, books, isbn=None, title=None, author=None, year=None):
         if isbn:
-            books = filter(lambda book: isbn == book.ISBN, books)
+            books = filter(lambda book: isbn == book.isbn, books)
 
         if year:
             books = filter(lambda book: year == book.year, books)
@@ -483,7 +481,7 @@ class BookCollection:
 
 
 @singleton
-class UserList:
+class UserList():
     _user_path = r"data/users.txt"
     _users = dict()
 
@@ -548,10 +546,6 @@ class UserList:
 
         users = [reservation for reservation in users]
 
-        # TODO return only list
-        # if len(users) == 1:
-        #     return users[0]
-
         return users
 
     def _search_file(self, user_id=None, name=None, address=None):
@@ -614,10 +608,16 @@ class Reservation:
             reservation_date = date.today()
         self.date = reservation_date
 
-        self.notified = notified
+        if type(notified) is str:
+            if notified.lower() == 'false':
+                notified = False
+            elif notified.lower() == 'true':
+                notified = True
+
+        self.notified = bool(notified)
 
     def notify(self, book):
-        if not self.notified and self.isbn == book.ISBN:
+        if not self.notified and self.isbn == book.isbn:
             user = UserList().search_users(user_id=self.user_id)
             self.notified = True
             print(f'Notify reservation. User_id: {self.user_id}, ISBN: {self.isbn}')
@@ -626,7 +626,10 @@ class Reservation:
         else:
             return False
 
-# TODO make menu
+    def __str__(self):
+        return f'user_id: {self.user_id}, isbn: {self.isbn}, date: {self.date}, Notified: {self.notified}'
+
+
 class Menu:
 
     def __init__(self):
@@ -647,11 +650,10 @@ class Menu:
             else:
                 try:
                     book = books[int(choice)]
+                    self.book_of_choice(book, user_id)
                     break
                 except Exception as e:
                     print('invalid input')
-
-        self.book_of_choice(book, user_id)
 
     def book_of_choice(self, book, user_id): #from choose_book
         while True:
@@ -715,17 +717,9 @@ class Menu:
                 break
 
 
-
-
-
     def menu_user(self):
         while True:
-            user_id=input("Enter User ID: ")
-
-            if user_id is int:
-                user_id = int(user_id)
-                print('invalid id format')
-                continue
+            user_id = input("Enter User ID: ").strip()
 
             user = self.library.find_users(user_id=user_id)
 
@@ -756,3 +750,8 @@ class Menu:
                 else:
                     print("Invalid Number - Try Again:")
                     continue
+
+
+if __name__ == '__main__':
+    menu = Menu()
+    menu.menu_user()

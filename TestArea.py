@@ -162,6 +162,11 @@ if __name__ == '__main__':
     for count, v in enumerate(b):
         print(count)
 
+    a = 'False'
+    b = bool(a)
+
+    print('Kristin' in "Kristin Hernandez")
+
     test_logging()
 
     test_to_string()
