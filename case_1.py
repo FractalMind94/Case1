@@ -160,6 +160,16 @@ class Library:
         books = self.books.search_books(**kwargs)
         return books
 
+    def find_loans(self, **kwargs):
+        loans = self.loans.search_loans(**kwargs)
+        return loans
+
+    #TODO search stock in books file
+    def find_in_stock(self, **kwargs):
+        #in_stock = self.in_stock.search_books(stock)
+        #return in_stock
+        pass
+
 
 @singleton
 class Loans:
@@ -600,20 +610,76 @@ class Reservation:
         else:
             return False
 
-
+# TODO make menu
 class Menu:
+
     def __init__(self):
         self.library = Library()
         # self.submenu1 =
 
-    def search_book(self):
+    def choose_book(self, books): #From search_book
+        #TODO choose book from list of the search and pass into book of choice
+        #books=[book for book in books]
+        #print(books)
+        pass
+    def book_of_choice(self): #from choose_book
+        while True:
+            print("1. Loan the book")
+            print("2. Make a reservation")
+            print("3. Exit")
+            loan=input()
+            if loan == 1:
+                loans = self.library.find_loans()
+                in_stock = self.library.find_in_stock() #TODO
+                if loans != in_stock: #something with stock
+                    self.library.loan()
+                if loans == in_stock:
+                    while True:
+                        print("Book is not in stock")
+                        print("Choose from one of three options instead: ")
+                        print("1. Make a reservation")
+                        print("2. Search another book")
+                        print("3. Exit")
+                        reserve = input()
+                        if reserve == 1:
+                            self.library.make_reservation(#TODO something in here)
+                        if reserve == 2:
+                            self.search_book()
+                        if reserve == 3:
+                            break
+                        else:
+                            print("Invalid Number - Try Again: ")
+                            continue
+            if loan == 2:
+                self.library.make_reservation()
+
+            if loan == 3:
+                break
+            else:
+                print("Invalid Number - Try Again: ")
+                continue
+
+
+    def search_book(self): # from menu_user
         kwargs = {'isbn': 1111, 'author': 'bob'}
-        books = self.library.find_books(**kwargs)
-        print()
+        book = ""
+        while True:
+            book=input("Enter Author or ISBN: ")
+            #TODO something with invalid values
+            while book:
+                books = self.library.find_books(#something)
+                if not books:
+                    print("No Book Found Matching Criteria - Try Again: ")
+                    continue
+                if books:
+                    self.choose_book(books)
+
+
+
     def menu_user(self):
 
         user_id=""
-        book=""
+
         while True:
             user_id=input("Enter User ID: ")
 
@@ -633,30 +699,24 @@ class Menu:
             while user:
                 print("---Library Menu---")
                 print("1. Look-Up book")
-                print("2. Loan a book")
-                print("3. Return a book")
-                print("4. Make a reservation")
-                print("5. View loan report")
-                print("6. Exit")
+                print("2. Return a book")
+                print("3. View loan report")
+                print("4. Exit")
 
-                choice=input()
+                choice = input()
                 if choice == 1:
                     self.search_book()
                 elif choice == 2:
-                    pass
+                    self.library.return_book()
                 elif choice == 3:
-                    pass
+                    self.library.loan_report(user_id=user_id)
                 elif choice == 4:
-                    pass
-                elif choice == 5:
-                    pass
-                elif choice == 6:
                     break
                 else:
-                    print("Value does not exist - Try Again:")
+                    print("Invalid Number - Try Again:")
+                    continue
 
 
 
 
 
-    # TODO make menu
